@@ -90,6 +90,43 @@ class Parser:
             self.rules.left += elem[0]
             self.rules.right.append(elem[1])
 
+    def __process(self):
+        active_head = self.second_stack[0]
+        if active_head.is_term:
+            if active_head.symbol == self.input[self.input_index]:
+                if debug_mode: print("step 2")
+                self.first_stack.append(
+                    Parser.StackElem(active_head.symbol, True))
+                self.second_stack = self.second_stack[1:]
+                self.input_index += 1
+
+                need_ret = False
+                if self.input_index == len(self.input):
+                    if not self.second_stack:
+                        if debug_mode: print("step 3")
+                        self.result = True
+                        self.state = "exit"
+                    else:
+                        need_ret = True
+                elif not self.second_stack:
+                        need_ret = True
+                if need_ret:
+                    if debug_mode: print("step 3'")
+                    self.state = "ret"
+            else:
+                if debug_mode: print("step 4")
+                self.state = "ret"
+        else:
+            if debug_mode: print("step 1")
+            self.first_stack.append(
+                Parser.StackElem(active_head.symbol, False, 0))
+
+            self.second_stack = self.second_stack[1:]
+            for symbol in self.__get_alternative(active_head.symbol, 0)[::-1]:
+                first_elem = Parser.StackElem(symbol, self.__is_term(symbol))
+                self.second_stack = [first_elem] + self.second_stack
+
+
     def __ret(self):
         active_head = self.first_stack[-1]
         if active_head.is_term:
@@ -141,43 +178,6 @@ class Parser:
         else:
             print("Result: bad")
             return False
-
-    def __process(self):
-        active_head = self.second_stack[0]
-        if active_head.is_term:
-            if active_head.symbol == self.input[self.input_index]:
-                if debug_mode: print("step 2")
-                self.first_stack.append(
-                    Parser.StackElem(active_head.symbol, True))
-                self.second_stack = self.second_stack[1:]
-                self.input_index += 1
-
-                need_ret = False
-                if self.input_index == len(self.input):
-                    if not self.second_stack:
-                        if debug_mode: print("step 3")
-                        self.result = True
-                        self.state = "exit"
-                    else:
-                        need_ret = True
-                elif not self.second_stack:
-                        need_ret = True
-                if need_ret:
-                    if debug_mode: print("step 3'")
-                    self.state = "ret"
-            else:
-                if debug_mode: print("step 4")
-                self.state = "ret" 
-        else:
-            if debug_mode: print("step 1")
-            self.first_stack.append(
-                Parser.StackElem(active_head.symbol, False, 0))
-
-            self.second_stack = self.second_stack[1:]
-            for symbol in self.__get_alternative(active_head.symbol, 0)[::-1]:
-                first_elem = Parser.StackElem(symbol, self.__is_term(symbol))
-                self.second_stack = [first_elem] + self.second_stack
-
 
 expression1 = "a+b+a+b*a*b+a*b"
 rules1 = Parser.Rules("BBTTMM", ["T+B", "T", "M", "M*T", "a", "b"])
