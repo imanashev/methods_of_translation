@@ -42,7 +42,7 @@ class Parser:
 
         i = 0
         while True:
-            if debug_mode: print("\nIteration #{}: state = {}".format(i, self.state))
+            print("\nIteration #{}: state = {}".format(i, self.state)) if debug_mode else None
             self.__print_stack()
 
             if self.state == "ok":
@@ -94,7 +94,7 @@ class Parser:
         active_head = self.second_stack[0]
         if active_head.is_term:
             if active_head.symbol == self.input[self.input_index]:
-                if debug_mode: print("step 2")
+                print("step 2") if debug_mode else None
                 self.first_stack.append(
                     Parser.StackElem(active_head.symbol, True))
                 self.second_stack = self.second_stack[1:]
@@ -103,7 +103,7 @@ class Parser:
                 need_ret = False
                 if self.input_index == len(self.input):
                     if not self.second_stack:
-                        if debug_mode: print("step 3")
+                        print("step 3") if debug_mode else None
                         self.result = True
                         self.state = "exit"
                     else:
@@ -111,13 +111,13 @@ class Parser:
                 elif not self.second_stack:
                         need_ret = True
                 if need_ret:
-                    if debug_mode: print("step 3'")
+                    print("step 3'") if debug_mode else None
                     self.state = "ret"
             else:
-                if debug_mode: print("step 4")
+                print("step 4") if debug_mode else None
                 self.state = "ret"
         else:
-            if debug_mode: print("step 1")
+            print("step 1") if debug_mode else None
             self.first_stack.append(
                 Parser.StackElem(active_head.symbol, False, 0))
 
@@ -126,17 +126,16 @@ class Parser:
                 first_elem = Parser.StackElem(symbol, self.__is_term(symbol))
                 self.second_stack = [first_elem] + self.second_stack
 
-
     def __ret(self):
         active_head = self.first_stack[-1]
         if active_head.is_term:
-            if debug_mode: print("step 5")
+            print("step 5") if debug_mode else None
             first_elem = Parser.StackElem(active_head.symbol, True)
             self.second_stack = [first_elem] + self.second_stack
             self.first_stack = self.first_stack[:-1]
             self.input_index -= 1
         elif self.__get_alternative(active_head.symbol, active_head.alt_idx + 1):
-            if debug_mode: print("step 6a")
+            print("step 6a") if debug_mode else None
             alt_len = len(self.__get_alternative(
                 active_head.symbol, active_head.alt_idx))
             self.second_stack = self.second_stack[alt_len:]
@@ -144,11 +143,11 @@ class Parser:
             self.__push_alternative(active_head.symbol, active_head.alt_idx)
             self.state = "ok"
         elif active_head.symbol == self.root_symbol:  # and self.input_index == 0:
-            if debug_mode: print("step 6b")
+            print("step 6b") if debug_mode else None
             self.result = False
             self.state = "exit"
         else:
-            if debug_mode: print("step 6B")
+            print("step 6B") if debug_mode else None
             alt_len = len(self.__get_alternative(
                 active_head.symbol, active_head.alt_idx))
             self.second_stack = self.second_stack[alt_len:]
