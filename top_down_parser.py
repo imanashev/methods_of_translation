@@ -2,6 +2,7 @@
 
 debug_mode = 0
 
+
 class Parser:
     class Rules:
         def __init__(self, left, right):
@@ -27,7 +28,6 @@ class Parser:
         self.rules = rules
         self.input = expression
         self.input_index = 0
-
 
         self.__normalize_rules()
         self.__init_alternatives()
@@ -177,6 +177,7 @@ class Parser:
         else:
             print("Result: bad")
             return False
+
 
 expression1 = "a+b+a+b*a*b+a*b"
 rules1 = Parser.Rules("BBTTMM", ["T+B", "T", "M", "M*T", "a", "b"])
