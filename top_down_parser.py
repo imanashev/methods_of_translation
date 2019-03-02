@@ -26,15 +26,18 @@ class Parser:
     def parse(self, rules, expression):
         self.rules = rules
         self.input = expression
+        self.input_index = 0
+
 
         self.__normalize_rules()
         self.__init_alternatives()
-        self.root_symbol = 'B'
+
         self.first_stack = []
         self.second_stack = []
+
+        self.root_symbol = 'B'
         self.second_stack.append(Parser.StackElem(self.root_symbol, False))
 
-        self.input_index = 0
         self.state = "ok"
 
         i = 0
@@ -47,8 +50,7 @@ class Parser:
             elif self.state == "ret":
                 self.__ret()
             elif self.state == "exit":
-                self.__exit()
-                return
+                return self.__exit()
             i += 1
 
     def __is_term(self, symbol):
@@ -128,13 +130,17 @@ class Parser:
         if self.result:
             print("Result: good")
             print("Inference: [ ", end='')
+            inference = []
             for elem in self.first_stack:
                 if not elem.is_term:
                     first_entry = self.rules.left.find(elem.symbol)
-                    print(first_entry + elem.alt_idx + 1, end=' ')
+                    inference.append(first_entry + elem.alt_idx + 1)
+                    print(inference[-1], end=' ')
             print("]")
+            return True, inference
         else:
             print("Result: bad")
+            return False
 
     def __process(self):
         active_head = self.second_stack[0]
