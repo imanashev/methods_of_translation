@@ -24,12 +24,12 @@ class Parser:
         def __repr__(self):
             return "['{}'|{}|{}]".format(self.symbol, self.is_term, self.alt_idx)
 
-    def parse(self, rules, expression):
+    def parse(self, rules, expression, normalize_rules = 0):
         self.rules = rules
         self.input = expression
         self.input_index = 0
 
-        self.__normalize_rules()
+        self.__normalize_rules() if normalize_rules else None
         self.__init_alternatives()
 
         self.first_stack = []
@@ -100,19 +100,17 @@ class Parser:
                 self.second_stack = self.second_stack[1:]
                 self.input_index += 1
 
-                need_ret = False
                 if self.input_index == len(self.input):
                     if not self.second_stack:
                         print("step 3") if debug_mode else None
                         self.result = True
                         self.state = "exit"
                     else:
-                        need_ret = True
+                        print("step 3'") if debug_mode else None
+                        self.state = "ret"
                 elif not self.second_stack:
-                        need_ret = True
-                if need_ret:
-                    print("step 3'") if debug_mode else None
-                    self.state = "ret"
+                        print("step 3'") if debug_mode else None
+                        self.state = "ret"
             else:
                 print("step 4") if debug_mode else None
                 self.state = "ret"
@@ -122,9 +120,7 @@ class Parser:
                 Parser.StackElem(active_head.symbol, False, 0))
 
             self.second_stack = self.second_stack[1:]
-            for symbol in self.__get_alternative(active_head.symbol, 0)[::-1]:
-                first_elem = Parser.StackElem(symbol, self.__is_term(symbol))
-                self.second_stack = [first_elem] + self.second_stack
+            self.__push_alternative(active_head.symbol, 0)
 
     def __ret(self):
         active_head = self.first_stack[-1]
@@ -183,6 +179,7 @@ expression1 = "a+b+a+b*a*b+a*b"
 rules1 = Parser.Rules("BBTTMM", ["T+B", "T", "M", "M*T", "a", "b"])
 
 expression2 = "!a+((b*a)*(a+(b)))!"
+expression3 = "!(a*(b+b))!"
 rules2 = Parser.Rules(
     "BAATTMMM", ["!A!", "T+A", "T", "M", "M*T", "a", "b", "(A)"])
 
@@ -190,4 +187,4 @@ parser = Parser()
 parser.parse(rules1, expression1)
 
 parser = Parser()
-parser.parse(rules2, expression2)
+parser.parse(rules2, expression3)
