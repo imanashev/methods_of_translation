@@ -25,11 +25,10 @@ class Parser:
             return "['{}'|{}|{}]".format(self.symbol, self.is_term, self.alt_idx)
 
     def parse(self, rules, expression, normalize_rules = 0):
-        self.rules = rules
+        self.rules = self.__normalize_rules() if normalize_rules else rules
         self.input = expression
         self.input_index = 0
 
-        self.__normalize_rules() if normalize_rules else None
         self.__init_alternatives()
 
         self.first_stack = []
