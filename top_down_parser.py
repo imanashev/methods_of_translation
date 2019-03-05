@@ -2,7 +2,6 @@
 
 debug_mode = 0
 
-
 class Parser:
     class Rules:
         def __init__(self, left, right):
@@ -85,9 +84,9 @@ class Parser:
         sorted_rules = sorted(zip(self.rules.left, self.rules.right))
         self.rules.left = ""
         self.rules.right = []
-        for elem in sorted_rules:
-            self.rules.left += elem[0]
-            self.rules.right.append(elem[1])
+        for left, right in sorted_rules:
+            self.rules.left += left
+            self.rules.right.append(right)
 
     def __process(self):
         active_head = self.second_stack[0]
