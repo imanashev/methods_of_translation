@@ -2,242 +2,182 @@ import sys
 import shlex
 import csv
 
-# def read_grammar(grammar):
+class operator_precedence_parser:
+	def __init__(self, grammar_filename, matrix_filename):
+		self.__read_grammar(grammar_filename)
+		self.__read_precedence_matrix(matrix_filename)
+		self.__generate_precedence_functions()
 
+	def __read_input(self, input_filename):
+		# input_string = "i + i - i"
+		input_string = open(input_filename, 'r')
+		input_string = input_string.read()
+		self.input_ind = list(shlex.shlex(input_string))
+		self.input_ind.append('$')
 
-def parse(F,G,operators, sentence):
-	sentence = sentence + '$'
-	stack = []
-	stack.append('$')
-	pos = 0
-	while True:
-		print(stack, sentence[pos:])
-		if sentence[pos] == '$' and stack[-1] == '$':
-			print('Accepted')
-			return
+	def __read_grammar(self, grammar_filename):
+		self.master = {}
+		self.master_list = []
+		self.new_list = []
+		self.non_terminals = []
 
-		top = stack[-1]
-		curent = sentence[pos]
-		print('top', top)
+		grammar = open(grammar_filename, 'r')
 
-		top_weight = F[operators.index(str(top))]
-		current_weight = G[operators.index(str(curent))]
+		for row2 in grammar:
+			if '->' in row2:
+				#new production
+				if len(self.new_list) == 0:
+					start_state = row2[0]
+					self.non_terminals.append(row2[0])
+					self.new_list = []
+					self.new_list.append(row2.rstrip('\n'))
+				else:
+					self.master_list.append(self.new_list)
+					del self.new_list
+					self.new_list = []
+					self.new_list.append(row2.rstrip('\n'))
+					self.non_terminals.append(row2[0])
+			elif '|' in row2:
+				self.new_list.append(row2.rstrip('\n'))
 
-		# if self.pre_matrix.get((top, sentence[pos]), None) in ['=', '<']:
-		if top_weight <= current_weight:
-			stack.append(sentence[pos])
-			pos += 1
-		# elif self.pre_matrix.get((top, sentence[pos]), None) == '>':
-		else:
-			while True:
-				p = stack.pop()
-				top = stack[-1]
-				print(stack, sentence[pos:])
+		self.master_list.append(self.new_list)
+		for x in xrange(len(self.master_list)):
+			for y in xrange(len(self.master_list[x])):
+				self.master_list[x][y] = [s.replace('|', '') for s in self.master_list[x][y]]
+				self.master_list[x][y] = ''.join(self.master_list[x][y])
+				self.master[self.master_list[x][y]] = self.non_terminals[x]
 
-				p_weight = G[operators.index(str(p))]
-				top_weight = F[operators.index(str(top))]
+		for key, value in self.master.iteritems():
+			if '->' in key:
+				length = len(key)
+				for i in xrange(length):
+					if key[i] == '-' and key[i + 1] == ">":
+						index = i+2
+						break
+				var_key = key
+				new_key = key[index:]
 
-				if top < p:
-				# if self.pre_matrix.get((top, p), None) == '<':
-					break
-				elif top == sentence[pos] == '$':
-					break
-				# elif (top, p) not in self.pre_matrix:
-					# print(top, sentence[pos], 'Not Accepted!')
-					# return
-		# else:
-		# 	print('Not Accepted')
-		# 	return
+		var = self.master[var_key]
+		del self.master[var_key]
+		self.master[new_key] = var
 
-
-
-def main():
-	
-	# input_string = "i + i - i"
-	input_string = open('input1.txt', 'r')
-	input_string = input_string.read()
-	input_ind = list(shlex.shlex(input_string))
-	input_ind.append('$')
-	
-	## Grammar reading
-	master = {}
-	master_list = []
-	new_list = []
-	non_terminals = []
-	grammar = open('grammar1.txt', 'r')
-	
-	for row2 in grammar:
+	def __read_precedence_matrix(self, matrix_filename):
+		self.order_table = []
+		with open(matrix_filename, 'rU') as file2:
+			order = csv.reader(file2)
+			for row in order:
+				self.order_table.append(row)
 		
-		if '->' in row2:
-			#new production
-			if len(new_list) == 0:
-				start_state = row2[0]
-				non_terminals.append(row2[0])
-				new_list = []
-				new_list.append(row2.rstrip('\n'))
+		self.operators = self.order_table[0]
+
+		print "Precedence matrix"
+		print('\n'.join(['\t'.join([str(cell) for cell in row]) for row in self.order_table]) + '\n')
+
+	def __generate_precedence_functions(self):
+		self.f = [1] * len(self.operators)
+		self.g = [1] * len(self.operators)
+
+		is_changed = 1
+		while is_changed:
+			is_changed = 0
+			for row in range(len(self.operators)):
+				for col in range(len(self.operators)):
+					if self.order_table[row][col] == '>' and self.f[row] <= self.g[col]:
+						self.f[row] = self.g[col] + 1
+						is_changed = 1
+			for col in range(len(self.operators)):
+				for row in range(len(self.operators)):
+					if self.order_table[row][col] == '<' and self.f[row] >= self.g[col]:
+						self.g[col] = self.f[row] + 1
+						is_changed = 1
+			for row in range(len(self.operators)):
+				for col in range(len(self.operators)):
+					if self.order_table[row][col] == '=' and self.f[row] != self.g[col]:
+						self.f[row] = self.g[col] = max(self.f[row], self.g[col])
+						is_changed = 1
+
+		print "Precedence functions"
+		print "F: {}".format(self.f)
+		print "G: {}\n".format(self.g)
+
+	def parse(self, input_filename):
+		self.__read_input(input_filename)
+
+		stack = []
+
+		stack.append('$')
+
+		print '{: <60}{: <60}{: <25}{: <10}'.format('Stack', 'Input', 'Precedence relation', 'Action')
+		vlaag = 1
+		while vlaag:
+		# for i in range(10):
+			if self.input_ind[0] == '$' and len(stack) == 2:
+				vlaag = 0
+
+			length = len(self.input_ind)
+
+			buffer_inp = self.input_ind[0]
+			temp1 = self.operators.index(str(buffer_inp))
+			# print "stack",stack, stack[-1]
+			if stack[-1] in self.non_terminals:
+				buffer_stack = stack[-2]
 			else:
-				master_list.append(new_list)
-				del new_list
-				new_list = []
-				new_list.append(row2.rstrip('\n'))
-				non_terminals.append(row2[0])
-				
-		
-		elif '|' in row2:
-			new_list.append(row2.rstrip('\n'))	
+				buffer_stack = stack[-1]
+			temp2 = self.operators.index(str(buffer_stack))
+			#print buffer_inp, buffer_stack
+
+			# precedence = self.order_table[temp2][temp1]
+			# if precedence == '<':
+			# 	action = 'shift'
+			# elif precedence == '>':
+			# 	action = 'reduce'
+
+			if self.f[temp1] > self.g[temp2]:
+				action = 'shift'
+				precedence = '>'
+			elif self.f[temp1] < self.g[temp2]:
+				action = 'reduce'
+				precedence = '<'
+			else:
+				action = 'pass'
+				precedence = '='
+
+			print '{: <60}{: <60}{: ^25}{: <10}'.format(stack, self.input_ind, precedence, action)
+
+			if action == 'shift':
+				stack.append(buffer_inp)
+				self.input_ind.remove(buffer_inp)
+			elif action == 'reduce':
+				for key, value in self.master.iteritems():
+					var1 = ''.join(stack[-1:])
+					var2 = ''.join(stack[-3:])
+					if str(key) == str(buffer_stack):
+						stack[-1] = value
+						break
+					elif key == var1 or stack[-3:] == list(var1):
+						stack[-3:] = value
+						break
+					elif key == var2:
+						stack[-3:] = value
+			else:
+				stack.append(buffer_inp)
+
+			del buffer_inp, temp1, buffer_stack, temp2, precedence
+
+			if vlaag == 0:
+				print "\nAccepted"
+
+
 	
-	master_list.append(new_list)
-	
-	
-	for x in xrange(len(master_list)):
-		for y in xrange(len(master_list[x])):
-			master_list[x][y] = [s.replace('|', '') for s in master_list[x][y]]
-			master_list[x][y] = ''.join(master_list[x][y])
-			master[master_list[x][y]] = non_terminals[x] 
-
-	for key, value in master.iteritems():
-		if '->' in key:
-			length = len(key)
-			for i in xrange(length):
-				if key[i] == '-' and key[i + 1] == ">":
-					index =  i+2
-					break
-			var_key = key
-			new_key = key[index:]
-	
-	var = master[var_key]
-	del master[var_key]
-	master[new_key] = var	
-	
-    ## Precedence matrix reading
-	order_table = []
-	with open('order1.csv', 'rU') as file2:
-		order = csv.reader(file2)
-		for row in order:
-			order_table.append(row)
-	
-	operators = order_table[0]
-
-	print "Precedence matrix"
-	print('\n'.join(['\t'.join([str(cell) for cell in row]) for row in order_table]) + '\n')
-
-    ## Precedence functions genertion
-	f = [1] * len(operators)
-	g = [1] * len(operators)
-
-	is_changed = 1
-	while is_changed:
-		is_changed = 0
-		for row in range(len(operators)):
-			for col in range(len(operators)):
-				if order_table[row][col] == '>' and f[row] <= g[col]:
-					f[row] = g[col] + 1
-					is_changed = 1
-		for col in range(len(operators)):
-			for row in range(len(operators)):
-				if order_table[row][col] == '<' and f[row] >= g[col]:
-					g[col] = f[row] + 1
-					is_changed = 1
-		for row in range(len(operators)):
-			for col in range(len(operators)):
-				if order_table[row][col] == '=' and f[row] != g[col]:
-					f[row] = g[col] = max(f[row], g[col])
-					is_changed = 1
-
-	print "Precedence functions"
-	print "F: {}".format(f)
-	print "G: {}".format(g)
-
-	## Analysis
-
-	parse(f, g, operators, input_string)
-	# stack = []
-
-	# stack.append('$') 
-	
-	# print '{: <60}{: <60}{: <25}{: <10}'.format('Stack', 'Input', 'Precedence relation', 'Action')
-	# vlaag = 1
-	# # while vlaag:
-	# for i in range(10):
-	# 	if input_ind[0] == '$' and len(stack)==2:
-	# 		vlaag = 0
-
-	# 	length = len(input_ind)
-
-	# 	buffer_inp = input_ind[0] 
-	# 	temp1 = operators.index(str(buffer_inp))
-	# 	# print "stack",stack, stack[-1]
-	# 	if stack[-1] in non_terminals:
-	# 		buffer_stack = stack[-2]
-	# 	else:
-	# 		buffer_stack = stack[-1]
-	# 	temp2 = operators.index(str(buffer_stack))
-	# 	#print buffer_inp, buffer_stack
-					
-	# 	# precedence = order_table[temp2][temp1]
-	# 	# if precedence == '<':
-	# 	# 	action = 'shift'
-	# 	# elif precedence == '>':
-	# 	# 	action = 'reduce'
-
-	# 	if f[temp1] > g[temp2]:
-	# 		action = 'shift'
-	# 		precedence = '>'
-	# 	elif f[temp1] < g[temp2]:
-	# 		action = 'reduce'
-	# 		precedence = '<'
-	# 	else:
-	# 		action = 'pass'
-	# 		precedence = '='
-
-				
-	# 	print '{: <60}{: <60}{: ^25}{: <10}'.format(stack, input_ind, precedence, action)
-		
-	# 	if action == 'shift':
-	# 		stack.append(buffer_inp)
-	# 		input_ind.remove(buffer_inp)
-	# 	elif action == 'reduce':
-	# 		for key, value in master.iteritems():
-	# 			var1 = ''.join(stack[-1:])
-	# 			var2 = ''.join(stack[-3:])
-	# 			if str(key) == str(buffer_stack):
-	# 				stack[-1] = value
-	# 				break
-	# 			elif key == var1 or stack[-3:]==list(var1):
-	# 				stack[-3:] = value
-	# 				break
-	# 			elif key == var2:
-	# 				stack[-3:] = value	
-	# 	else:
-	# 		stack.append(buffer_inp)
-
-	# 	del buffer_inp, temp1, buffer_stack, temp2, precedence
-		
-	# 	if vlaag == 0:
-	# 		print "\nAccepted"
-		
-	# return 2
+def main():
+	parser = operator_precedence_parser(
+		grammar_filename='grammar.txt',
+		matrix_filename='order.csv'
+	)
+	parser.parse(
+		input_filename='input.txt'
+	)
+	return 2
 	
 if __name__ == "__main__":
 	sys.exit(main())
-
-
-
-
-# ,+,-,*,/,i,(,),!,$
-# +,>,>,<,<,<,<,>,>,>
-# -,>,>,<,<,<,<,>,>,>
-# *,>,>,>,>,<,<,>,>,>
-# /,>,>,>,>,<,<,>,>,>
-# i,>,>,>,>,,,>,>,>
-# (,<,<,<,<,<,<,=,,>
-# ),>,>,>,>,,,>,>,>
-# !,<,<,<,<,<,<,,=,>
-# $,<,<,<,<,<,<,<,<,
-
-
-# A ->!B!
-# B ->B+T
-# T ->T*M
-# M -> i
-# |(B)
