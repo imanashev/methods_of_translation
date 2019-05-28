@@ -1,5 +1,12 @@
 A ->!B!
+|!T!
 B ->B+T
+|T
+|M+M
+|T+M
+|T+T
 T ->T*M
+|M
+|M*M
 M ->i
 |(B)

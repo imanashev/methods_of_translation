@@ -9,15 +9,13 @@ class operator_precedence_parser:
 		self.__generate_precedence_functions()
 
 	def __read_input(self, input_filename):
-		# input_string = "i + i - i"
 		input_string = open(input_filename, 'r')
 		input_string = input_string.read()
 		self.input_ind = list(shlex.shlex(input_string))
-		# self.input_ind.append('$')
 		print('Input: {}\n'.format(input_string))
 
 	def __read_grammar(self, grammar_filename):
-		self.master = {}
+		self.rules = {}
 		self.non_terminals = []
 		self.start_state = ''
 		master_list = []
@@ -47,9 +45,9 @@ class operator_precedence_parser:
 			for y in range(len(master_list[x])):
 				master_list[x][y] = [s.replace('|', '') for s in master_list[x][y]]
 				master_list[x][y] = ''.join(master_list[x][y])
-				self.master[master_list[x][y]] = self.non_terminals[x]
+				self.rules[master_list[x][y]] = self.non_terminals[x]
 
-		for key, value in self.master.iteritems():
+		for key, value in self.rules.iteritems():
 			if '->' in key:
 				length = len(key)
 				for i in range(length):
@@ -59,11 +57,11 @@ class operator_precedence_parser:
 				var_key = key
 				new_key = key[index:]
 
-				var = self.master[var_key]
-				del self.master[var_key]
-				self.master[new_key] = var
+				var = self.rules[var_key]
+				del self.rules[var_key]
+				self.rules[new_key] = var
 
-		print('Rules: {}'.format(self.master))
+		print('Rules: {}'.format(self.rules))
 		print('Start state: {}'.format(self.start_state))
 		print('Non terms: {}'.format(self.non_terminals))
 
@@ -112,6 +110,9 @@ class operator_precedence_parser:
 	def __get_g(self, ch):
 		return self.g[self.operators.index(ch)]
 
+	def __get_order(self, lhs, rhs):
+		return self.order_table[self.operators.index(lhs)][self.operators.index(rhs)]
+
 	def parse(self, input_filename):
 		self.__read_input(input_filename)
 
@@ -119,104 +120,22 @@ class operator_precedence_parser:
 
 		stack.append(self.input_ind[0])
 
-		print('{: <60}{: <60}{: <25}{: <10}'.format('Stack', 'Input', 'Precedence relation', 'Action'))
-		vlaag = 1
-		while vlaag:
-		# for i in range(10):
-			if self.input_ind[0] == '$' and len(stack) == 2:
-				vlaag = 0
+		print('{: <60}{: <110}{: <25}'.format('Stack', 'Input', 'Precedence relation'))
 
-			length = len(self.input_ind)
-
-			buffer_inp = self.input_ind[0]
-			temp1 = self.operators.index(str(buffer_inp))
-			# print "stack",stack, stack[-1]
-			if stack[-1] in self.non_terminals:
-				buffer_stack = stack[-2]
-			else:
-				buffer_stack = stack[-1]
-			temp2 = self.operators.index(str(buffer_stack))
-			#print buffer_inp, buffer_stack
-
-			# precedence = self.order_table[temp2][temp1]
-			# if precedence == '<':
-			# 	action = 'shift'
-			# elif precedence == '>':
-			# 	action = 'reduce'
-
-			if self.f[temp1] > self.g[temp2]:
-				action = 'shift'
-				precedence = '>'
-			elif self.f[temp1] < self.g[temp2]:
-				action = 'reduce'
-				precedence = '<'
-			else:
-				action = 'pass'
-				precedence = '='
-
-			print('{: <60}{: <60}{: ^25}{: <10}'.format(stack, self.input_ind, precedence, action))
-
-			if action == 'shift':
-				stack.append(buffer_inp)
-				self.input_ind.remove(buffer_inp)
-			elif action == 'reduce':
-				for key, value in self.master.iteritems():
-					var1 = ''.join(stack[-1:])
-					var2 = ''.join(stack[-3:])
-					if str(key) == str(buffer_stack):
-						stack[-1] = value
-						break
-					elif key == var1 or stack[-3:] == list(var1):
-						stack[-3:] = value
-						break
-					elif key == var2:
-						stack[-3:] = value
-			else:
-				stack.append(buffer_inp)
-
-			del buffer_inp, temp1, buffer_stack, temp2, precedence
-
-			if vlaag == 0:
-				print("\nAccepted")
-
-	def parse2(self, input_filename):
-		self.__read_input(input_filename)
-
-		# PARSING = ''
-		# POLIZE = ''
-		stack = []
-		# mop = MOP()
-
-		# START
-		stack.append(self.input_ind[0])
 
 		pointerStr = 1
 		while pointerStr < len(self.input_ind):
-			# elemInStr = self.input_ind[pointerStr]
 			elemForStack = self.input_ind[pointerStr]
-
-			# # check the self.input_ind and replace the identifier with 'I'
-			# if elemInStr in TERM:
-			# 	elemForStack = elemInStr
-			# elif elemInStr in IDENT:
-			# 	# POLIZE += elemInStr
-			# 	# PARSING += '4' # ???!!!
-			# 	elemForStack = 'I'
-			# else:
-			# 	assert(print('ERROR in main(): incorrect input data!'))
 
 			# check whether the last character is a terminal in stack
 			pointerStack = stack.__len__() - 1
 			if stack[pointerStack] in self.non_terminals:
 				pointerStack -= 1
-				# check that the penultimate character in the stack is a terminal
-				# if stack[pointerStack] not in TERM:
-					# assert(print("ERROR in main(): the penultimate character in the stack isn't a terminal"))
-					# print("ERROR in main(): the penultimate character in the stack isn't a terminal")
 
 			# find the ratio of the precedence
-			# if mop.get((stack[pointerStack], elemForStack)) == '<':
-			if self.__get_f(stack[pointerStack]) < self.__get_g(elemForStack):
+			# if self.__get_f(stack[pointerStack]) < self.__get_g(elemForStack):
+			order = self.__get_order(stack[pointerStack], elemForStack)
+			if order == '<':
 				if pointerStack == (len(stack) - 1):
 					stack.append('<')
 					stack.append(elemForStack)
@@ -225,9 +144,8 @@ class operator_precedence_parser:
 					stack.append('<')
 					stack.append(tmp)
 					stack.append(elemForStack)
-			# elif mop.get((stack[pointerStack], elemForStack)) == '>':
-			elif self.__get_f(stack[pointerStack]) > self.__get_g(elemForStack):
 
+			elif order == '>':
 				lastElemStack = stack.pop()
 				while lastElemStack[-1:] != '<':
 					lastElemStack += stack.pop()
@@ -235,70 +153,35 @@ class operator_precedence_parser:
 				lastElemStack = lastElemStack[:-1]
 				lastElemStack = lastElemStack[::-1]
 
-				# Among the generating rules, we seek a rule containing the primary phrase on the right-hand side of
-				# strForRules = ''
-				# for ch in lastElemStack:
-				# 	if ch == 'i':
-				# 		strForRules += 'NONTERM'
-				# 	elif ch in self.non_terminals:
-				# 		strForRules += 'NONTERM'
-					# elif ch in TERM:
-					# else:
-					# 	strForRules += ch
-					# else:
-						# assert(print("ERROR in main(): incorrect variable : lastElemStack"))
-						# print("ERROR in main(): incorrect variable : lastElemStack")
-
-				# for print rules
-				# for rules in RULES_RESOLVER:
-				# 	for rightRules in RULES_RESOLVER[rules]:
-				# 		if rightRules == strForRules:
-				# 			# PARSING += str(First_PLACE_in_RULES_RESOLVER[rules])
-				# 			# try:
-				# 				# POLIZE += For_Polize[rules]
-				# 			# except:
-				# 			# 	pass
-				# 			break
-
-				# for next steps
-				# for rules in RULES:
-				# 	for rightRules in RULES[rules]:
-				# 		if rightRules == lastElemStack:
-				# 			lastElemStack = rules
-				# 			pointerStr -= 1
-				# 			break
-				for key, value in self.master.iteritems():
+				for key, value in self.rules.iteritems():
 					if key == lastElemStack:
 						lastElemStack = value
 						pointerStr -= 1
 						break
-
+				
 				stack.append(lastElemStack)
-			# elif mop.get((stack[pointerStack], elemForStack)) == '=':
-			elif self.__get_f(stack[pointerStack]) == self.__get_g(elemForStack):
+
+			elif order == '=':
 				stack.append(elemForStack)
 			else:
 				print('This input not in this grammatic!')
 				return
 
+			print('{: <60}{: <110}{: ^25}'.format(
+				stack, self.input_ind[pointerStr:], order))
 			pointerStr += 1
-			print(stack)
+
 
 		result = ''
 		for ch in stack:
 			result += ch
 		print(result)
 
-
-		# for rules in RULES:
-		# 	for rightRules in RULES[rules]:
-		# 		if rightRules == result:
-		# 			result = rules
-		# 			# PARSING += '1'
+		for key, value in self.rules.iteritems():
+			if key == result:
+				result = value
 
 		if result == self.start_state:
-			# print(PARSING)
-			# print(POLIZE)
 			print('Correct')
 		else:
 			print('Incorrect')
@@ -309,7 +192,7 @@ def main():
 		grammar_filename='grammar1.txt',
 		matrix_filename='order2.csv'
 	)
-	parser.parse2(
+	parser.parse(
 		input_filename='input1.txt'
 	)
 	return 2
