@@ -120,8 +120,7 @@ class operator_precedence_parser:
 
 		stack.append(self.input_ind[0])
 
-		print('{: <60}{: <110}{: <25}'.format('Stack', 'Input', 'Precedence relation'))
-
+		print('{: <60}{: <110}{: <25}'.format('Stack', 'Input', 'Relation'))
 
 		pointerStr = 1
 		while pointerStr < len(self.input_ind):
@@ -158,7 +157,7 @@ class operator_precedence_parser:
 						lastElemStack = value
 						pointerStr -= 1
 						break
-				
+
 				stack.append(lastElemStack)
 
 			elif order == '=':
@@ -167,7 +166,7 @@ class operator_precedence_parser:
 				print('This input not in this grammatic!')
 				return
 
-			print('{: <60}{: <110}{: ^25}'.format(
+			print('{: <60}{: <110}{: <25}'.format(
 				stack, self.input_ind[pointerStr:], order))
 			pointerStr += 1
 
@@ -193,7 +192,7 @@ def main():
 		matrix_filename='order2.csv'
 	)
 	parser.parse(
-		input_filename='input1.txt'
+		input_filename='input.txt'
 	)
 	return 2
 	
